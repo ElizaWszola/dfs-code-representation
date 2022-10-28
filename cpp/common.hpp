@@ -3,6 +3,8 @@
 
 #include <ctime>
 #include <cstdlib>
+#include <limits>
+
 
 #define GIGA 1000000000
 typedef struct timespec clocktime;

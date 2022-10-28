@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cassert>
 
+
 #include "common.hpp"
 
 #define MAP false
@@ -45,8 +46,14 @@ class DFSRow {
   uint32_t from_label;
   uint32_t e_label;
   uint32_t to_label;
-  DFSRow(uint32_t f, uint32_t t, uint32_t fl, uint32_t el, uint32_t tl):
-         from(f), to(t), from_label(fl), e_label(el), to_label(tl) {}
+  // ids
+  uint32_t from_vertex_id;
+  uint32_t e_id;
+  uint32_t to_vertex_id;
+  DFSRow(uint32_t f, uint32_t t, uint32_t fl, uint32_t el, uint32_t tl,
+         uint32_t fi, uint32_t ei, uint32_t ti):
+         from(f), to(t), from_label(fl), e_label(el), to_label(tl),
+         from_vertex_id(fi), e_id(ei), to_vertex_id(ti) {}
   bool operator<(const DFSRow& other) {
     return
         to < from && other.to > other.from ||
@@ -150,7 +157,6 @@ uint32_t get_forward_rmpath(Graph& g, Edge* e, uint32_t min_label,
 uint32_t get_forward_pure(Graph& g, Edge* e, uint32_t min_label,
                       History& history, EdgeList& edges);
 uint32_t get_forward_root(Graph& g, Vertex& v, EdgeList& edges);
-Edge* get_backward(Graph& g, Edge* e1, Edge* e2, History& history);
 uint32_t build_history(Graph& g, PDFS* proj, History& history);
 uint32_t build_rm_path(DFSCode& code, std::vector<uint32_t>& rmpath);
 void get_min_code(Graph& g, DFSCode& min_dfs);
@@ -158,13 +164,10 @@ void print_dfs_code(DFSCode& code);
 void create_sample(Graph& graph);
 void print_graph(Graph& graph);
 
-void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
-                      std::vector<uint32_t>& rmpath,
-                      History& history, EdgeList& edges,
-                      std::vector<DFSCode>& res_dfs, uint64_t timeout,
-                      clocktime &start);
+void get_min_code(Graph& g, std::vector<DFSCode>& res_dfs, uint64_t timeout, bool& timed_out);
 void get_min_code(Graph& g, std::vector<DFSCode>& res_dfs, uint64_t timeout);
 void get_min_code(Graph& g, std::vector<DFSCode>& res_dfs);
+void get_min_code(Graph& g, DFSCode& res_dfs, uint64_t timeout, bool& timed_out);
 void get_min_code(Graph& g, DFSCode& res_dfs, uint64_t timeout);
 void get_min_code(Graph& g, DFSCode& res_dfs);
 

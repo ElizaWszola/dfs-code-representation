@@ -1,6 +1,6 @@
 #include <iostream>
+
 #include "graph_fast.hpp"
-#include "correlation.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -12,10 +12,13 @@ using namespace std;
 /*
  * edge_list = [(from, to, label, id)]
  */
-py::list compute_minimal_dfs_code(py::list edge_list, py::list node_types){
+py::list compute_minimal_dfs_code(py::list edge_list, py::list node_types, uint64_t timeout){
     Graph g;
+	uint32_t id = 0;
     for (auto node_type : node_types){
-        g.push_back(Vertex(node_type.cast<uint32_t>()));
+        g.push_back(Vertex(node_type.cast<uint32_t>())); //liz
+        //g.push_back(Vertex(node_type.cast<uint32_t>(), id)); // chris
+		id++;
     }
     
     
@@ -32,11 +35,13 @@ py::list compute_minimal_dfs_code(py::list edge_list, py::list node_types){
     }
     g.edge_size = (int) (edge_list.size()/2);
     DFSCode code;
-    get_min_code(g, code);
+    get_min_code(g, code, timeout);
     std::vector<std::vector<uint32_t>> res_vec;
     
     for (auto row : code) {
-        std::vector<uint32_t> vec{row.from, row.to, row.from_label, row.e_label, row.to_label};
+        std::vector<uint32_t> vec{row.from, row.to, 
+		                          row.from_label, row.e_label, row.to_label, 
+		                          row.from_vertex_id, row.e_id, row.to_vertex_id};
         res_vec.push_back(vec);
     }
     
@@ -45,93 +50,14 @@ py::list compute_minimal_dfs_code(py::list edge_list, py::list node_types){
     
 }
 
-py::list compute_minimal_dfs_code_vector(py::list edge_list, py::list node_types){
-    Graph g;
-    for (auto node_type : node_types){
-        g.push_back(Vertex(node_type.cast<uint32_t>()));
-    }
-    
-    
-    for (auto edge : edge_list) {
-        //uint32_t from = (uint32_t) edge(0);
-        vector<uint32_t> e(4);
-        int idx = 0;
-        for (auto el : edge) {
-            e[idx] = el.cast<uint32_t>();
-            //cout << e[idx] << ";";
-            idx++;
-        }
-        g[e[0]].edges.push_back(Edge(e[0], e[1], e[2], e[3]));
-    }
-    g.edge_size = (int) (edge_list.size()/2);
-    
-    //~ std::cout << "***\n";
-    //~ print_graph(g);
-    //~ std::cout << "***\n";
-    
-    std::vector<DFSCode> codes;
-    get_min_code(g, codes);
-    std::vector<std::vector<uint32_t>> res_row;
-    std::vector<std::vector<std::vector<uint32_t>>> res_vec;
-    
-    for (auto code : codes) {
-      res_row.clear();
-      for (auto row : code) {
-          std::vector<uint32_t> vec{row.from, row.to, row.from_label, row.e_label, row.to_label};
-          res_row.push_back(vec);
-      }
-      res_vec.push_back(res_row);
-    }
-    py::list result = py::cast(res_vec);
-    return result;
-    
-}
-
-void compute_graph_correlation(py::list node_types, py::list edge_list,
-        py::array_t<double>& Y, py::array_t<bool>& B, py::array_t<bool>& fB){
-    c_real* y = (c_real*)(Y.request()).ptr;
-    vector<Graph> x;
-    for (auto nt : node_types) {
-        Graph g;
-        for (auto node_type : nt){
-            g.push_back(Vertex(node_type.cast<uint32_t>()));
-        }
-        x.push_back(g);
-    }
-    
-    uint32_t ctr = 0;
-    for (auto edl : edge_list) {
-      Graph& g = x[ctr];
-          uint32_t esize = 0;
-          for (auto edge : edl) {
-              //uint32_t from = (uint32_t) edge(0);
-              vector<uint32_t> e(4);
-              int idx = 0;
-              for (auto el : edge) {
-                  e[idx] = el.cast<uint32_t>();
-                  //cout << e[idx] << ";";
-                  idx++;
-              }
-              g[e[0]].edges.push_back(Edge(e[0], e[1], e[2], e[3]));
-              ++esize;
-        }
-        g.edge_size = (int)(esize/2);
-        ++ctr;
-    }
-    
-    
-    int64_t max_queue = 0;
-    int64_t total_processed = 0;
-    double delta = 0.0;
-    bool* fb = (bool*)(fB.request()).ptr;
-    bool* b = (bool*)(B.request()).ptr;
-    
-    ThreadPool tp(1);
-    bool corr = tp.cmc_full(x, y, b, fb, delta, max_queue, total_processed);
-}
 
 PYBIND11_MODULE(_dfs_codes, m) {
-    m.def("compute_minimal_dfs_code", &compute_minimal_dfs_code, "compute the minimal dfs code of a graph represented by edge_list = [(from, to, label, id)] and node_types = [type1, type2...]");
-    m.def("compute_minimal_dfs_code_vector", &compute_minimal_dfs_code_vector, "compute the minimal dfs code of a graph represented by edge_list = [(from, to, label, id)] and node_types = [type1, type2...]");
-    m.def("compute_graph_correlation", &compute_graph_correlation, "tuptuptuptuptup");
+    m.def("compute_minimal_dfs_code", &compute_minimal_dfs_code,"Computes the minimal dfs code of a graph represented by edge_list = [(from, to, label, id)] and node_types = [type1, type2...]." 
+																"Note that the entries of the list are of the form"
+																 "[from_dfs_pos, to_dfs_pos,"
+																 " from_label, edge_label, to_label,"
+																 " from_vertex_id, edge_id, to_Vertex_id],"
+																 "thus, the last three entries are not part of the DFS-code itself."
+                        										 "the last three entries contain ids which allow further processing,"
+																 "such as adding additional vertex and edge features to the code.");
 }

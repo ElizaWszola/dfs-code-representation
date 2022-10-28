@@ -25,7 +25,8 @@ class Vertex {
   typedef std::vector<Edge>::iterator edge_it;
   std::vector<Edge> edges;
   uint32_t label;
-  Vertex(uint32_t l): label(l) {}
+  uint32_t vertex_id;
+  Vertex(uint32_t l, uint32_t vertex_id): label(l), vertex_id(vertex_id) {}
 };
 
 class Graph: public std::vector<Vertex> {
@@ -36,13 +37,18 @@ class Graph: public std::vector<Vertex> {
 
 class DFSRow {
   public:
-  uint32_t from;
-  uint32_t to;
+  uint32_t from; // DFS from
+  uint32_t to; // DFS to
   uint32_t from_label;
   uint32_t e_label;
   uint32_t to_label;
-  DFSRow(uint32_t f, uint32_t t, uint32_t fl, uint32_t el, uint32_t tl):
-         from(f), to(t), from_label(fl), e_label(el), to_label(tl) {}
+  // for further processing
+  uint32_t from_vertex_id;
+  uint32_t e_id;
+  uint32_t to_vertex_id;
+  
+  DFSRow(uint32_t f, uint32_t t, uint32_t fl, uint32_t el, uint32_t tl, uint32_t fid, uint32_t eid, uint32_t tid):
+         from(f), to(t), from_label(fl), e_label(el), to_label(tl), from_vertex_id(fid), e_id(eid), to_vertex_id(tid){}
   bool operator<(const DFSRow& other) {
     return
         to < from && other.to > other.from ||
@@ -135,6 +141,7 @@ typedef std::map<uint32_t, Proj> Pmap1;
 typedef std::map<uint32_t, std::map<uint32_t, Proj>> Pmap2;
 typedef std::map<uint32_t, std::map<
         uint32_t, std::map<uint32_t, Proj>>> Pmap3;
+
 
 bool get_forward_rmpath(Graph& g, Edge* e, uint32_t min_label,
                         History& history, EdgeList& edges);

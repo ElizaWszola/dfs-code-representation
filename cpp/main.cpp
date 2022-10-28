@@ -3,8 +3,6 @@
 #else
 #include "graph.hpp"
 #endif
-#include "correlation.hpp"
-
 #include <iostream>
 
 int main() {
@@ -12,10 +10,11 @@ int main() {
   Graph g;
   DFSCode result;
   create_sample(g);
-  //~ get_min_code(g, result);
-  print_graph(g);
+  get_min_code(g, result, 0);
+  //~ print_graph(g);
   std::vector<DFSCode> results;
-  get_min_code(g, results, 1000);
+  //~ get_min_code(g, results);
+  print_dfs_code(result);
   for (int32_t i = 0; i < results.size(); ++i) {
     std::cout << "Min DFS Candidate #" << i + 1 << "\n";
     print_dfs_code(results[i]);

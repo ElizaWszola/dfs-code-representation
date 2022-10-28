@@ -358,12 +358,13 @@ inline bool is_label_lt(uint32_t edge1, uint32_t edge2) {
 void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
                       std::vector<uint32_t>& rmpath, History& history,
                       EdgeList& edges, std::vector<DFSCode>& res_dfs,
-                      uint64_t timeout, clocktime &start) {
+                      uint64_t timeout, clocktime &start, bool& timed_out) {
   if (timeout) {
     clocktime current;
     get_time(&current);
     if (get_time_difference(&start, &current) > timeout * 1000) {
-      res_dfs.clear();
+      //~ res_dfs.clear();
+      timed_out = true;
       return;
     }
   }
@@ -410,12 +411,15 @@ void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
     Proj& projected = root.begin()->second;
     #endif
     for (int32_t i = 1; i < projected.size(); ++i) {
+      Edge* pedge = projected[i].edge;
       #if MAP
-      DFSRow new_row = DFSRow(max_id, new_to, g[projected[i].edge->from].label,
-                              root.begin()->first, g[projected[i].edge->to].label);
+      DFSRow new_row = DFSRow(max_id, new_to, g[pedge->from].label,
+                              root.begin()->first, g[pedge->to].label,
+                              pedge->from, pedge->id, pedge->to);
       #else
-      DFSRow new_row = DFSRow(max_id, new_to, g[projected[i].edge->from].label,
-                              min_edge, g[projected[i].edge->to].label);
+      DFSRow new_row = DFSRow(max_id, new_to, g[pedge->from].label,
+                              min_edge, g[pedge->to].label,
+                              pedge->from, pedge->id, pedge->to);
       #endif
       DFSCode min_dfs_local(min_dfs);
       min_dfs_local.push_back(new_row);
@@ -434,14 +438,17 @@ void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
         res_dfs.erase(res_dfs.begin() + remove[i]);
       }
       get_min_code_rec(g, min_dfs_local, projected[i], rmpath, history,
-                       edges, res_dfs, timeout, start);
+                       edges, res_dfs, timeout, start, timed_out);
     }
+    Edge* pedge = projected[0].edge;
     #if MAP
-    DFSRow new_row = DFSRow(max_id, new_to, g[projected[0].edge->from].label,
-                               root.begin()->first, g[projected[0].edge->to].label);
+    DFSRow new_row = DFSRow(max_id, new_to, g[pedge->from].label,
+                            root.begin()->first, g[pedge->to].label,
+                            pedge->from, pedge->id, pedge->to);
     #else
-    DFSRow new_row = DFSRow(max_id, new_to, g[projected[0].edge->from].label,
-                               min_edge, g[projected[0].edge->to].label);
+    DFSRow new_row = DFSRow(max_id, new_to, g[pedge->from].label,
+                            min_edge, g[pedge->to].label,
+                            pedge->from, pedge->id, pedge->to);
     #endif
     min_dfs.push_back(new_row);
     std::vector<uint32_t> remove;
@@ -459,7 +466,7 @@ void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
       res_dfs.erase(res_dfs.begin() + remove[i]);
     }
     get_min_code_rec(g, min_dfs, projected[0], rmpath, history,
-                    edges, res_dfs, timeout, start);
+                    edges, res_dfs, timeout, start, timed_out);
     return;
   }
   #if MAP
@@ -526,13 +533,16 @@ void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
     Proj& projected = root2.begin()->second.begin()->second;
     #endif
     for (int32_t i = 1; i < projected.size(); ++i) {
+      Edge* pedge = projected[i].edge;
       #if MAP
-      DFSRow new_row = DFSRow(new_from, max_id + 1, g[projected[i].edge->from].label,
+      DFSRow new_row = DFSRow(new_from, max_id + 1, g[pedge->from].label,
                               root2.begin()->first,
-                              root2.begin()->second.begin()->first);
+                              root2.begin()->second.begin()->first,
+                              pedge->from, pedge->id, pedge->to);
       #else
-      DFSRow new_row = DFSRow(new_from, max_id + 1, g[projected[i].edge->from].label,
-                              min_edge, min_to);
+      DFSRow new_row = DFSRow(new_from, max_id + 1, g[pedge->from].label,
+                              min_edge, min_to, pedge->from,
+                              pedge->id, pedge->to);
       #endif
       DFSCode min_dfs_local(min_dfs);
       min_dfs_local.push_back(new_row);
@@ -551,15 +561,18 @@ void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
         res_dfs.erase(res_dfs.begin() + remove[i]);
       }
       get_min_code_rec(g, min_dfs_local, projected[i], rmpath, history,
-                       edges, res_dfs, timeout, start);
+                       edges, res_dfs, timeout, start, timed_out);
     }
+    Edge* pedge = projected[0].edge;
     #if MAP
-    DFSRow new_row = DFSRow(new_from, max_id + 1, g[projected[0].edge->from].label,
-                             root2.begin()->first,
-                             root2.begin()->second.begin()->first);
+    DFSRow new_row = DFSRow(new_from, max_id + 1, g[pedge->from].label,
+                            root2.begin()->first,
+                            root2.begin()->second.begin()->first,
+                            pedge->from, pedge->id, pedge->to);
     #else
-    DFSRow new_row = DFSRow(new_from, max_id + 1, g[projected[0].edge->from].label,
-                            min_edge, min_to);
+    DFSRow new_row = DFSRow(new_from, max_id + 1, g[pedge->from].label,
+                            min_edge, min_to, pedge->from,
+                            pedge->id, pedge->to);
     #endif
     min_dfs.push_back(new_row);
     std::vector<uint32_t> remove;
@@ -577,7 +590,7 @@ void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
       res_dfs.erase(res_dfs.begin() + remove[i]);
     }
     get_min_code_rec(g, min_dfs, projected[0], rmpath, history,
-                     edges, res_dfs, timeout, start);
+                     edges, res_dfs, timeout, start, timed_out);
     return;
   }
   //~ std::cout << "Code candidate:\n";
@@ -596,7 +609,8 @@ void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
 // smallest one.
 // TODO what about multiple identical min labels? This code ignores this
 // possibility...
-void get_min_code(Graph& g, std::vector<DFSCode>& res_dfs, uint64_t timeout) {
+void get_min_code(Graph& g, std::vector<DFSCode>& res_dfs, uint64_t timeout, bool& timed_out) {
+  timed_out = false;
   clocktime start;
   get_time(&start);
   EdgeList edges(g.edge_size);
@@ -639,25 +653,41 @@ void get_min_code(Graph& g, std::vector<DFSCode>& res_dfs, uint64_t timeout) {
   Proj& projected =
       root.begin()->second.begin()->second.begin()->second;
   for (int32_t i = 0; i < projected.size(); ++i) {
+    Edge* pedge = projected[i].edge;
     DFSCode min_dfs_local;
     min_dfs_local.reserve(g.edge_size);
     min_dfs_local.push_back(
       DFSRow(0, 1, root.begin()->first,
              root.begin()->second.begin()->first,
-             root.begin()->second.begin()->second.begin()->first));
+             root.begin()->second.begin()->second.begin()->first,
+             pedge->from, pedge->id, pedge->to));
     get_min_code_rec(g, min_dfs_local, projected[i], rmpath, history,
-                     edges, res_dfs, timeout, start);
+                     edges, res_dfs, timeout, start, timed_out);
   }
   #else
   for (int32_t i = 0; i < projected.size(); ++i) {
+    Edge* pedge = projected[i].edge;
     DFSCode min_dfs_local;
     min_dfs_local.reserve(g.edge_size);
-    min_dfs_local.push_back(DFSRow(0, 1, min_from, min_edge, min_to));
+    min_dfs_local.push_back(DFSRow(0, 1, min_from, min_edge, min_to,
+                                   pedge->from, pedge->id, pedge->to));
     get_min_code_rec(g, min_dfs_local, projected[i], rmpath, history,
-                     edges, res_dfs, timeout, start);
+                     edges, res_dfs, timeout, start, timed_out);
   }
   #endif
 }
+
+
+void get_min_code(Graph& g, std::vector<DFSCode>& res_dfs) {
+  bool discard;
+  get_min_code(g, res_dfs, 0, discard);
+}
+
+void get_min_code(Graph& g, std::vector<DFSCode>& res_dfs, uint64_t timeout) {
+  bool discard;
+  get_min_code(g, res_dfs, timeout, discard);
+}
+
 
 // Min_dfs actually stands for a min DFS candidate.
 // To my understanding, this function simply gradually reconstructs g
@@ -674,12 +704,13 @@ void get_min_code(Graph& g, std::vector<DFSCode>& res_dfs, uint64_t timeout) {
 void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
                       std::vector<uint32_t>& rmpath, History& history,
                       EdgeList& edges, DFSCode& res_dfs, uint64_t timeout,
-                      clocktime &start) {
+                      clocktime &start, bool& timed_out) {
   if (timeout) {
     clocktime current;
     get_time(&current);
     if (get_time_difference(&start, &current) > timeout * 1000) {
-      res_dfs.clear();
+      //~ res_dfs.clear();
+      timed_out = true;
       return;
     }
   }
@@ -726,12 +757,15 @@ void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
     Proj& projected = root.begin()->second;
     #endif
     for (int32_t i = 1; i < projected.size(); ++i) {
+      Edge* pedge = projected[i].edge;
       #if MAP
-      DFSRow new_row = DFSRow(max_id, new_to, g[projected[i].edge->from].label,
-                              root.begin()->first, g[projected[i].edge->to].label);
+      DFSRow new_row = DFSRow(max_id, new_to, g[pedge->from].label,
+                              root.begin()->first, g[pedge->to].label,
+                              pedge->from, pedge->id, pedge->to);
       #else
-      DFSRow new_row = DFSRow(max_id, new_to, g[projected[i].edge->from].label,
-                              min_edge, g[projected[i].edge->to].label);
+      DFSRow new_row = DFSRow(max_id, new_to, g[pedge->from].label,
+                              min_edge, g[pedge->to].label,
+                              pedge->from, pedge->id, pedge->to);
       #endif
       DFSCode min_dfs_local(min_dfs);
       min_dfs_local.push_back(new_row);
@@ -739,21 +773,24 @@ void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
         return;
       }
       get_min_code_rec(g, min_dfs_local, projected[i], rmpath, history,
-                       edges, res_dfs, timeout, start);
+                       edges, res_dfs, timeout, start, timed_out);
     }
+    Edge* pedge = projected[0].edge;
     #if MAP
-    DFSRow new_row = DFSRow(max_id, new_to, g[projected[0].edge->from].label,
-                               root.begin()->first, g[projected[0].edge->to].label);
+    DFSRow new_row = DFSRow(max_id, new_to, g[pedge->from].label,
+                            root.begin()->first, g[pedge->to].label,
+                            pedge->from, pedge->id, pedge->to);
     #else
-    DFSRow new_row = DFSRow(max_id, new_to, g[projected[0].edge->from].label,
-                               min_edge, g[projected[0].edge->to].label);
+    DFSRow new_row = DFSRow(max_id, new_to, g[pedge->from].label,
+                            min_edge, g[pedge->to].label,
+                            pedge->from, pedge->id, pedge->to);
     #endif
     min_dfs.push_back(new_row);
     if (!res_dfs.empty() && res_dfs < min_dfs) {
       return;
     }
     get_min_code_rec(g, min_dfs, projected[0], rmpath, history,
-                    edges, res_dfs, timeout, start);
+                    edges, res_dfs, timeout, start, timed_out);
     return;
   }
   #if MAP
@@ -820,13 +857,16 @@ void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
     Proj& projected = root2.begin()->second.begin()->second;
     #endif
     for (int32_t i = 1; i < projected.size(); ++i) {
+      Edge* pedge = projected[i].edge;
       #if MAP
-      DFSRow new_row = DFSRow(new_from, max_id + 1, g[projected[i].edge->from].label,
+      DFSRow new_row = DFSRow(new_from, max_id + 1, g[pedge->from].label,
                               root2.begin()->first,
-                              root2.begin()->second.begin()->first);
+                              root2.begin()->second.begin()->first,
+                              pedge->from, pedge->id, pedge->to);
       #else
-      DFSRow new_row = DFSRow(new_from, max_id + 1, g[projected[i].edge->from].label,
-                              min_edge, min_to);
+      DFSRow new_row = DFSRow(new_from, max_id + 1, g[pedge->from].label,
+                              min_edge, min_to,
+                              pedge->from, pedge->id, pedge->to);
       #endif
       DFSCode min_dfs_local(min_dfs);
       min_dfs_local.push_back(new_row);
@@ -834,22 +874,25 @@ void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
         return;
       }
       get_min_code_rec(g, min_dfs_local, projected[i], rmpath, history,
-                       edges, res_dfs, timeout, start);
+                       edges, res_dfs, timeout, start, timed_out);
     }
+    Edge* pedge = projected[0].edge;
     #if MAP
-    DFSRow new_row = DFSRow(new_from, max_id + 1, g[projected[0].edge->from].label,
-                             root2.begin()->first,
-                             root2.begin()->second.begin()->first);
+    DFSRow new_row = DFSRow(new_from, max_id + 1, g[pedge->from].label,
+                            root2.begin()->first,
+                            root2.begin()->second.begin()->first,
+                            pedge->from, pedge->id, pedge->to);
     #else
-    DFSRow new_row = DFSRow(new_from, max_id + 1, g[projected[0].edge->from].label,
-                            min_edge, min_to);
+    DFSRow new_row = DFSRow(new_from, max_id + 1, g[pedge->from].label,
+                            min_edge, min_to,
+                            pedge->from, pedge->id, pedge->to);
     #endif
     min_dfs.push_back(new_row);
     if (!res_dfs.empty() && res_dfs < min_dfs) {
       return;
     }
     get_min_code_rec(g, min_dfs, projected[0], rmpath, history,
-                     edges, res_dfs, timeout, start);
+                     edges, res_dfs, timeout, start, timed_out);
     return;
   }
   //~ std::cout << "Code candidate:\n";
@@ -857,8 +900,8 @@ void get_min_code_rec(Graph& g, DFSCode& min_dfs, PDFS& cur_edge,
   res_dfs = min_dfs;
 }
 
-// timeout in ms: if timed-out, returns an empty result
-void get_min_code(Graph& g, DFSCode& res_dfs, uint64_t timeout) {
+void get_min_code(Graph& g, DFSCode& res_dfs, uint64_t timeout, bool& timed_out) {
+  timed_out = false;
   clocktime start;
   get_time(&start);
   res_dfs.reserve(g.edge_size);
@@ -903,136 +946,37 @@ void get_min_code(Graph& g, DFSCode& res_dfs, uint64_t timeout) {
   Proj& projected =
       root.begin()->second.begin()->second.begin()->second;
   for (int32_t i = 0; i < projected.size(); ++i) {
+    Edge* pedge = projected[i].edge;
     DFSCode min_dfs_local;
     min_dfs_local.reserve(g.edge_size);
     min_dfs_local.push_back(
       DFSRow(0, 1, root.begin()->first,
              root.begin()->second.begin()->first,
-             root.begin()->second.begin()->second.begin()->first));
+             root.begin()->second.begin()->second.begin()->first,
+             pedge->from, pedge->id, pedge->to));
     get_min_code_rec(g, min_dfs_local, projected[i], rmpath, history,
-                     edges, res_dfs, timeout, start);
+                     edges, res_dfs, timeout, start, timed_out);
   }
   #else
   for (int32_t i = 0; i < projected.size(); ++i) {
+    Edge* pedge = projected[i].edge;
     DFSCode min_dfs_local;
     min_dfs_local.reserve(g.edge_size);
-    min_dfs_local.push_back(DFSRow(0, 1, min_from, min_edge, min_to));
+    min_dfs_local.push_back(DFSRow(0, 1, min_from, min_edge, min_to,
+                                   pedge->from, pedge->id, pedge->to));
     get_min_code_rec(g, min_dfs_local, projected[i], rmpath, history,
-                     edges, res_dfs, timeout, start);
+                     edges, res_dfs, timeout, start, timed_out);
   }
   #endif
 }
 
 void get_min_code(Graph& g, DFSCode& res_dfs) {
-  get_min_code(g, res_dfs, 0);
+  bool discard;
+  get_min_code(g, res_dfs, 0, discard);
 }
 
-/*
-void compute_max_correlation_rec(Graph& g, DFSCode& code, PDFS& cur_edge,
-                      std::vector<uint32_t>& rmpath, History& history,
-                      EdgeList& edges) {
-  uint32_t rmp_size = build_rm_path(min_dfs, rmpath);
-  // the "from" label of the first edge of the dfs code
-  uint32_t min_label = min_dfs[0].from_label;
-  // the "to" id of the last forward edge of the dfs code
-  uint32_t max_id = min_dfs[rmpath[0]].to;
-  //~ #if MAP
-  Pmap3 fwd_root;
-  Pmap2 bwd_root;
-  //~ #else
-  //~ Proj projected;
-  //~ uint32_t min_edge = std::numeric_limits<uint32_t>::max();
-  //~ uint32_t min_to = std::numeric_limits<uint32_t>::max();
-  //~ #endif
-  bool added = false; // added new edge?
-  uint32_t new_to = 0;
-  // generate backward edges
-  uint32_t hsize = build_history(g, &cur_edge, history);
-  for (int32_t i = rmp_size - 1; i >= 1; --i) {
-    Edge *e = get_backward(g, history[rmpath[i]],
-                           history[rmpath[0]], history);
-    if (e) {
-      //~ #if MAP
-      bwd_root[g[e->from].label][e->elabel].push_back(PDFS(0, e, &cur_edge));
-      //~ #else
-      //~ uint32_t c_edge = e->elabel;
-      //~ if (is_label_eq(c_edge, min_edge)) {
-        //~ projected.push_back(PDFS(0, e, &cur_edge));
-      //~ } else if (is_label_lt(c_edge, min_edge)) {
-        //~ min_edge = c_edge;
-        //~ projected.clear();
-        //~ projected.push_back(PDFS(0, e, &cur_edge));
-      //~ }
-      //~ #endif
-    }
-  }
-  //generate edges from the last added edge
-  uint32_t edge_size = get_forward_pure(g, history[rmpath[0]],
-                                        min_label, history, edges);
-  for (uint32_t eid = 0; eid < edge_size; ++eid) {
-    Edge* e = edges[eid];
-    //~ #if MAP
-    fwd_root[g[e->from].label][e->elabel][g[e->to].label].push_back(
-        PDFS(0, e, &cur_edge));
-    //~ #else
-    //~ uint32_t c_edge = e->elabel;
-    //~ uint32_t c_to = g[e->to].label;
-    //~ if (is_label_eq(c_edge, c_to, min_edge, min_to)) {
-      //~ projected.push_back(PDFS(0, e, &cur_edge));
-    //~ } else if (is_label_lt(c_edge, c_to, min_edge, min_to)) {
-      //~ min_edge = c_edge;
-      //~ min_to = c_to;
-      //~ projected.clear();
-      //~ projected.push_back(PDFS(0, e, &cur_edge));
-    //~ }
-    //~ #endif
-  }
-  // generate forward edges
-  for (int32_t i = 0; i < rmp_size; ++i) {
-    uint32_t edge_size = get_forward_rmpath(g, history[rmpath[i]],
-                                            min_label, history, edges);
-    for (uint32_t eid = 0; eid < edge_size; ++eid) {
-      Edge* e = edges[eid];
-      //~ #if MAP
-      fwd_root[g[e->from].label][e->elabel][g[e->to].label].push_back(
-          PDFS(0, e, &cur_edge));
-      //~ #else
-      //~ uint32_t c_edge = e->elabel;
-      //~ uint32_t c_to = g[e->to].label;
-      //~ if (is_label_eq(c_edge, c_to, min_edge, min_to)) {
-        //~ projected.push_back(PDFS(0, e, &cur_edge));
-      //~ } else if (is_label_lt(c_edge, c_to, min_edge, min_to)) {
-        //~ min_edge = c_edge;
-        //~ min_to = c_to;
-        //~ projected.clear();
-        //~ projected.push_back(PDFS(0, e, &cur_edge));
-      //~ }
-      //~ #endif
-    }
-  }
-  
-  // generate from maps
-  for (Pmap2::iterator to = bwd_root.begin(); to != bwd_root.end(); ++to) {
-    for (Pmap1::iterator elabel = to->second.begin(); elabel != to->second.end(); ++elabel) {
-      code.push_back(max_id, to->first, -1, elabel->first, -1);
-      generate_rec(g, code, elabel->second, rmpath, history, edges);
-      code.pop();
-    }
-  }
-  for (Pmap3::iterator from = fwd_root.begin(); from != fwd_root.end(); ++from) {
-    for (Pmap2::iterator elabel = from->second.begin(); elabel != from->second.end(); ++elabel) {
-      for (Pmap1::iterator to = elabel->second.begin(); to != elabel->second.end(); ++to) {
-        code.push_back(from->first, max_id + 1, -1, elabel->first, -1);
-        generate_rec(g, code, to->second, rmpath, history, edges);
-        code.pop();
-      }
-    }
-  }
+void get_min_code(Graph& g, DFSCode& res_dfs, uint64_t timeout) {
+  bool discard;
+  get_min_code(g, res_dfs, timeout, discard);
 }
 
-void generate(Graph& g, Proj& projected, DFSCode& code) {
-  DFSCode mincode;
-  // TODO check if code is minimal
-  
-}
-*/
