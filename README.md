@@ -1,6 +1,6 @@
 # DFS Code Representation
 
-For now, it's just a small piece of code that supposedly computes the minimum DFS Code of a graph.
+It's a small piece of code that computes the minimum DFS Code of a graph.
 
 Based on GSpan.
 
