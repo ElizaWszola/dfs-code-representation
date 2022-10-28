@@ -2,7 +2,7 @@
 
 It's a small piece of code that computes the minimum DFS Code of a graph.
 
-Based on GSpan.
+Based on GSpan: https://github.com/rkwitt/gboost/tree/master/src-gspan.
 
 
 # Build
